@@ -1,0 +1,9 @@
+langgraph
+python-dotenv
+typing-extensions
+fpdf2
+openai
+streamlit
+requests
+langchain
+reportlab

@@ -1,0 +1,22 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment variables
+.env
+.env.local
+
+# IDE Files
+.vscode/
+.idea/
+.DS_Store
+
+# Output Files
+itinerary.pdf
+*.pdf
