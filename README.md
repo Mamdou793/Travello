@@ -1,12 +1,15 @@
-# Travello# ✈️ Travello - Automated Travel Concierge
-
-Travello is an intelligent, multi-agent AI travel concierge designed to plan custom, budget-friendly, and destination-specific itineraries using the LangGraph framework and Streamlit.
+# Travello - AI Travel Concierge
+Travello is a Python-based travel application that utilizes generative AI to create custom itineraries, estimate costs, and generate downloadable travel itineraries in PDF format.
 
 ## Features
+- **AI-Powered Generation:** Automatically plans daily activities based on user preferences.
 - **Multi-Agent Orchestration:** Uses specialized agents to search accommodations and flights, and verify budget constraints.
 - **Dynamic Itinerary Generation:** Tailored, destination-specific daily activities generated using OpenAI or Azure OpenAI.
-- **Cost Analysis:** Calculates hotel and flight costs and compares them against the total budget.
-- **PDF Generation & Email Notifications:** Generates a printable PDF of the itinerary and allows email delivery.
+- **Cost Estimation:** Calculates total trip and activity costs.
+- **PDF Generation:** Exports clear and professional itineraries containing trip summaries, flight details, hotel recommendations, and detailed day-by-day logs.
+
+## Quick Start
+Ensure you have the required packages installed and your API keys (e.g., Azure OpenAI) configured.
 
 ## Prerequisites
 - Python 3.10+ 

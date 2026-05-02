@@ -6,13 +6,23 @@ from utils.notifier import Notifier
 
 st.set_page_config(page_title="Travello - AI Travel Concierge", layout="wide")
 
-st.title("✈️ Travello - Automated Travel Concierge")
-st.write("Plan and book custom itineraries with multi-agent orchestration.")
-
-# Split form into responsive columns
-col1, col2 = st.columns(2)
+# Split the header area for the logo and title
+col1, col2 = st.columns([1, 10])
 
 with col1:
+    try:
+        st.image("logo.png", width=75)
+    except FileNotFoundError:
+        pass  # Gracefully skip if logo.png isn't found
+
+with col2:
+    st.title("Travello - Automated Travel Concierge")
+    st.write("Plan and book custom itineraries with multi-agent orchestration.")
+
+# Split form into responsive columns
+col_1, col_2 = st.columns(2)
+
+with col_1:
     st.subheader("Journey Parameters")
     # Empty fields requiring the user to specify locations
     origin = st.text_input("Origin (e.g., Riyadh, Saudi Arabia):", "")
@@ -20,7 +30,7 @@ with col1:
     budget = st.number_input("Total Budget Package ($):", value=14000.00, step=500.00)
     days = st.number_input("Trip Duration (Days):", value=6, step=1, min_value=1)
 
-with col2:
+with col_2:
     st.subheader("Logistics & Preferences")
     flight_class = st.selectbox("Flight Class:", ["Economy", "Business", "First"])
     hotel_stars = st.slider("Hotel Rating (Stars):", min_value=3, max_value=5, value=5)
@@ -40,8 +50,8 @@ if st.button("Generate Trip Plan"):
                 "flight_class": flight_class,
                 "hotel_stars": int(hotel_stars),
                 "activities_preference": activities_preference,
-                "hotel_data": {},
-                "flight_data": {},
+                "hotel_data": [],
+                "flight_data": [],
                 "itinerary": [],
                 "total_cost": 0.0,
                 "status": "Initialized"
@@ -51,6 +61,7 @@ if st.button("Generate Trip Plan"):
             result = app_graph.invoke(user_input)
             st.session_state['result'] = result
             st.success("Research and Plan Complete!")
+            st.rerun()
 
 if 'result' in st.session_state:
     res = st.session_state['result']
@@ -59,58 +70,112 @@ if 'result' in st.session_state:
     st.header("Results Summary")
     st.metric(label="Status", value=res.get('status', 'N/A'))
     
-    total_cost = res.get('total_cost', 0.0)
-    budget = res.get('budget', 0.0)
-    st.metric(label="Total Projected Cost", value=f"${total_cost:,.2f}", delta=f"${budget - total_cost:,.2f} under budget")
+    flight_options = res.get("flight_data", [])
+    hotel_options = res.get("hotel_data", [])
     
     c1, c2 = st.columns(2)
     
-    # Safely unpack hotel data
-    hotel_data = res.get("hotel_data", {})
-    if isinstance(hotel_data, list) and len(hotel_data) > 0:
-        hotel_data = hotel_data[0]
-    elif not isinstance(hotel_data, dict):
-        hotel_data = {}
-
     with c1:
-        st.subheader("🏨 Hotel Details")
-        st.write(f"**Name:** {hotel_data.get('hotel', 'N/A')}")
-        st.write(f"**Location:** {hotel_data.get('location', 'N/A')}")
-        
-        hotel_price = hotel_data.get('price_per_night')
-        if hotel_price is not None:
-            st.write(f"**Cost / Night:** ${hotel_price:,.2f}")
-        else:
-            st.write("**Cost / Night:** N/A")
+        st.subheader("Select Flight Option")
+        if flight_options:
+            flight_choices = []
+            for f in flight_options:
+                if isinstance(f, list) and len(f) > 0:
+                    f_item = f[0]
+                else:
+                    f_item = f
+                    
+                if isinstance(f_item, dict):
+                    airline = f_item.get('airline', 'N/A')
+                    cost = float(f_item.get('flight_cost', 0.0))
+                else:
+                    airline, cost = 'N/A', 0.0
+                    
+                flight_choices.append(f"{airline} - ${cost:,.2f}")
+                
+            selected_flight_idx = st.selectbox("Choose flight:", range(len(flight_choices)), format_func=lambda i: flight_choices[i])
+            selected_flight = flight_options[selected_flight_idx]
             
-        amenities = hotel_data.get('amenities', [])
-        st.write(f"**Amenities:** {', '.join(amenities) if isinstance(amenities, list) else amenities}")
-        
-    # Safely unpack flight data
-    flight_data = res.get("flight_data", {})
-    if isinstance(flight_data, list) and len(flight_data) > 0:
-        flight_data = flight_data[0]
-    elif not isinstance(flight_data, dict):
-        flight_data = {}
+            # Normalize to dict object
+            if isinstance(selected_flight, list) and len(selected_flight) > 0:
+                selected_flight = selected_flight[0]
+            elif not isinstance(selected_flight, dict):
+                selected_flight = {"flight_cost": 0.0, "airline": "N/A"}
+        else:
+            selected_flight = {"flight_cost": 0.0, "airline": "N/A"}
+            st.warning("No flight data found.")
 
     with c2:
-        st.subheader("✈️ Flights")
-        st.write(f"**Airline:** {flight_data.get('airline', 'N/A')}")
-        st.write(f"**Class Selected:** {flight_data.get('class', flight_class)}")
-        
-        flight_cost = flight_data.get('flight_cost')
-        if flight_cost is not None:
-            st.write(f"**Cost:** ${flight_cost:,.2f}")
+        st.subheader("Select Hotel Option")
+        if hotel_options:
+            hotel_choices = []
+            for h in hotel_options:
+                if isinstance(h, list) and len(h) > 0:
+                    h_item = h[0]
+                else:
+                    h_item = h
+                    
+                if isinstance(h_item, dict):
+                    hotel_name = h_item.get('hotel', h_item.get('name', 'Hotel'))
+                    price = float(h_item.get('price_per_night', 0.0))
+                else:
+                    hotel_name, price = 'Hotel', 0.0
+                    
+                hotel_choices.append(f"{hotel_name} - ${price:,.2f}/night")
+                
+            selected_hotel_idx = st.selectbox("Choose hotel:", range(len(hotel_choices)), format_func=lambda i: hotel_choices[i])
+            selected_hotel = hotel_options[selected_hotel_idx]
+            
+            # Normalize to dict object
+            if isinstance(selected_hotel, list) and len(selected_hotel) > 0:
+                selected_hotel = selected_hotel[0]
+            elif not isinstance(selected_hotel, dict):
+                selected_hotel = {"price_per_night": 0.0, "hotel": "N/A"}
+                
+            nights = st.number_input("Number of Nights", min_value=1, value=res.get("days", 6), step=1)
         else:
-            st.write("**Cost:** N/A")
+            selected_hotel = {"price_per_night": 0.0, "hotel": "N/A"}
+            nights = res.get("days", 6)
+            st.warning("No hotel data found.")
+
+    # Calculate costs safely based on the normalized dictionaries
+    itinerary = res.get("itinerary", [])
+    activity_cost = 0.0
+    for item in itinerary:
+        activity_cost += float(item.get('cost', 0.0))
         
+    flight_cost = float(selected_flight.get("flight_cost", 0.0))
+    hotel_cost = float(selected_hotel.get("price_per_night", 0.0)) * nights
+    total_calculated_cost = flight_cost + hotel_cost + activity_cost
+
+    st.write("### Trip Cost Breakdown")
+    st.write(f"- **Selected Flight Cost:** ${flight_cost:,.2f}")
+    st.write(f"- **Selected Hotel Cost:** ${hotel_cost:,.2f} ({nights} nights)")
+    st.write(f"- **Activities Cost:** ${activity_cost:,.2f}")
+    st.write(f"### Total Calculated Cost: ${total_calculated_cost:,.2f}")
+
+    budget_limit = float(res.get("budget", 0.0))
+    difference = budget_limit - total_calculated_cost
+    
+    if difference >= 0:
+        st.info(f"💰 Under Budget by: ${difference:,.2f}")
+    else:
+        st.error(f"🚨 Over Budget by: ${abs(difference):,.2f}")
+
     st.subheader("📅 Detailed Itinerary")
-    for day in res.get('itinerary', []):
-        st.markdown(f"**Day {day.get('day', 'N/A')}:** {day.get('activity', 'N/A')} <br><em>Logistics: {day.get('transport', 'N/A')}</em>", unsafe_allow_html=True)
+    if itinerary:
+        for item in itinerary:
+            st.write(f"**Day {item.get('day', 'N/A')}:** {item.get('activity', 'N/A')} | Transport: {item.get('transport', 'N/A')} | Cost: ${float(item.get('cost', 0.0)):,.2f}")
+    else:
+        st.warning("No itinerary details were generated.")
         
     # PDF & Actions
     st.subheader("Download & Notifications")
     if st.button("Generate PDF Itinerary"):
+        res["total_cost"] = total_calculated_cost
+        res["flight_data"] = [selected_flight]
+        res["hotel_data"] = [selected_hotel]
+        
         pdf_path = generate_itinerary_pdf(res)
         st.session_state['pdf_path'] = pdf_path
         st.success("PDF Itinerary generated successfully!")
@@ -128,7 +193,6 @@ if 'result' in st.session_state:
     if st.button("Email Itinerary"):
         if 'pdf_path' in st.session_state and os.path.exists(st.session_state['pdf_path']):
             notifier = Notifier()
-            # Updated to pass the user's email and provide endpoint error handling
             if notifier.send_itinerary_email(recipient_email, st.session_state['pdf_path']):
                 st.success(f"Email successfully sent to {recipient_email}!")
             else:
